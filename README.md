@@ -55,6 +55,6 @@ docker run -d \
 ## 💖 打赏支持
 如果本项目对你有帮助，欢迎打赏支持 😄  
 
-<img src="images/img.jpeg" alt="打赏二维码" width="300" />
+<img src="https://raw.githubusercontent.com/xbajiu/CloudFastDDNS/refs/heads/main/images/img.jpeg" alt="打赏二维码" width="300" />
 
 
