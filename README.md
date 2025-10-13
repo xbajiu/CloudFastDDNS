@@ -36,7 +36,8 @@ bash start.sh
 docker run -d \
   -v /opt/cloudfastddns/config:/app/config \
   --name cloudfastddns \
-  xbajiu/cloudfastddns:latest
+  --restart=always \
+  xbajiu/cfstddns:latest
 ```
 
 📁 `/opt/cloudfastddns/config` 为宿主机配置目录，容器启动后自动测速与 DDNS 更新。  
