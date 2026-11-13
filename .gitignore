@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+.DS_Store
+Thumbs.db
+cf_ddns/cfst
+cf_ddns/result.csv
+cf_ddns/informlog
+cf_ddns/hosts_new
+cf_ddns/.pr_ip_timestamp
+cf_ddns/ip_pr.txt
+.ran_before

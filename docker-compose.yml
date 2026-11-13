@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  cloudfastddns:
+    build: .
+    image: cloudfastddns:latest
+    container_name: cloudfastddns
+    restart: unless-stopped
+    network_mode: "bridge"
+    ports:
+      - "9909:9909"
+    volumes:
+      - /opt/cloudfastddns:/opt/cloudfastddns
+    environment:
+      - TZ=Asia/Shanghai
+      - PORT=9909
+      - DATA_DIR=/opt/cloudfastddns

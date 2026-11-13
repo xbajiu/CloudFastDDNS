@@ -1,218 +1,221 @@
 #!/bin/bash
-#		版本：V2.3
+#		版本：20231004 (基于 lee1080/CloudflareSpeedTestDDNS main 分支)
 #         用于cfst调用，更新hosts和更新dnspod DNS。
 
-#set -euo pipefail
-ipv4Regex="((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])";
+DATA_DIR="${DATA_DIR:-/opt/cloudfastddns}"
+CF_DDNS_DIR="${DATA_DIR}/cf_ddns"
+CloudflareST="${CF_DDNS_DIR}/cfst"
+informlog="${CF_DDNS_DIR}/informlog"
+cf_push="${CF_DDNS_DIR}/cf_push.sh"
+CSV_FILE="${CF_DDNS_DIR}/result.csv"
 
-networks=('默认' '电信' '联通' '移动' '铁通' '广电' '教育网' '境内' '境外')
-RECORD_LINE=${networks[LINE]}
+# shellcheck disable=SC1091
+source "${CF_DDNS_DIR}/cf_common.sh"
+
+init_informlog
+num=${#hostname[*]}
+
+if [ "$num" -eq 0 ]; then
+  log_inform "[错误] 未配置任何需要 DDNS 的域名 (hostname 为空)，请先在配置中添加域名！"
+  source "$cf_push"
+  exit 1
+fi
+
+declare -a DNSPOD_DOMAINS=()
 
 if [ "$IP_TO_DNSPOD" = "1" ]; then
-  # 发送请求并获取响应
   response=$(curl -sSf -X POST "https://dnsapi.cn/Domain.List" \
      -H "Content-Type: application/x-www-form-urlencoded" \
-     -d "login_token=${dnspod_token}&format=json&offset=0&length=20")
+     -d "login_token=${dnspod_token}&format=json&offset=0&length=100")
 
-  # 解析json响应并检查状态码
-  if [[ $(echo ${response} | jq -r '.status.code') == 1 ]]; then
+  status_code=$(echo "${response}" | jq -r '.status.code // empty' 2>/dev/null)
+  if [ "${status_code}" = "1" ]; then
     echo "dnspod Token有效"
+    while IFS= read -r dname; do
+      [ -n "$dname" ] && DNSPOD_DOMAINS+=("$dname")
+    done <<< "$(echo "${response}" | jq -r '.domains[]?.name // empty' 2>/dev/null)"
   else
-    echo "dnspod Token无效"
-    echo "登陆错误,检查dnspod Token信息填写是否正确！" > $informlog
-    source $cf_push;
-    exit 1;
+    err_msg=$(echo "${response}" | jq -r '.status.message // "请检查配置填写是否正确"' 2>/dev/null)
+    log_inform "dnspod Token无效: ${err_msg}"
+    source "$cf_push"
+    exit 1
   fi
-  echo "dnspod Token验证成功";
 else
   echo "未配置dnspod Token"
 fi
 
-#获取域名填写数量
-num=${#hostname[*]};
+# LINEChoice
+case "${LINE:-0}" in
+  1) LINE="电信" ;;
+  2) LINE="联通" ;;
+  3) LINE="移动" ;;
+  4) LINE="铁通" ;;
+  5) LINE="广电" ;;
+  6) LINE="教育网" ;;
+  7) LINE="境内" ;;
+  8) LINE="境外" ;;
+  *) LINE="默认" ;;
+esac
 
-#判断优选ip数量是否大于域名数，小于则让优选数与域名数相同
-if [ "$CFST_DN" -le $num ] ; then
-  CFST_DN=$num;
+# 初始化并校验 CFST 参数
+init_cfst_defaults "$num"
+
+# 执行 cfst 测速
+run_cfst_speedtest || {
+  log_inform "[错误] 测速执行失败，已保留旧 DNS 解析记录！"
+  source "$cf_push"
+  exit 1
+}
+
+if [ ! -f "$CSV_FILE" ]; then
+  log_inform "[警告] 未获取到有效测速 IP（结果文件为空；当前下载速度下限 CFST_SL=${CFST_SL} MB/s），保留旧 DNS 解析记录！"
+  return 0 2>/dev/null || exit 0
 fi
-CFST_P=$CFST_DN;
 
-#判断工作模式
-if [ "$IP_ADDR" = "ipv6" ] ; then
-  if [ ! -f "./cfst/ipv6.txt" ]; then
-    echo "当前工作模式为ipv6，但该目录下没有【ipv6.txt】，请配置【ipv6.txt】。下载地址：https://github.com/XIU2/CloudflareSpeedTest/releases";
-    exit 2;
-  else
-    echo "当前工作模式为ipv6";
+total_rows=$(awk 'END {print NR-1}' "$CSV_FILE")
+if [ "${total_rows:-0}" -le 0 ]; then
+  log_inform "[警告] 未获取到有效测速 IP（测速结果为空；当前下载速度下限 CFST_SL=${CFST_SL} MB/s），保留旧 DNS 解析记录！"
+  return 0 2>/dev/null || exit 0
+fi
+
+DNSPOD_DOMAIN=""
+DNSPOD_SUBDOMAIN=""
+
+dnspod_split_domain() {
+  local fullname="$1"
+  local candidate=""
+  DNSPOD_DOMAIN=""
+  DNSPOD_SUBDOMAIN=""
+
+  # 1. 优先从已获取的 DNSPod 域名列表中匹配最长后缀（兼容 .eu.org / .com.cn / 根域名 / 多级子域名）
+  local best_match=""
+  local d
+  for d in "${DNSPOD_DOMAINS[@]}"; do
+    if [ "$fullname" = "$d" ] || [[ "$fullname" == *".${d}" ]]; then
+      if [ "${#d}" -gt "${#best_match}" ]; then
+        best_match="$d"
+      fi
+    fi
+  done
+
+  if [ -n "$best_match" ]; then
+    DNSPOD_DOMAIN="$best_match"
+    if [ "$fullname" = "$best_match" ]; then
+      DNSPOD_SUBDOMAIN="@"
+    else
+      DNSPOD_SUBDOMAIN="${fullname%.$best_match}"
+    fi
+    return 0
   fi
-else
-  echo "当前工作模式为ipv4";
-fi
 
-#判断是否配置测速地址 
-if [[ "$CFST_URL" == http* ]] ; then
-  CFST_URL_R="-url $CFST_URL -tp $CFST_TP ";
-else
-  CFST_URL_R="";
-fi
+  # 2. 若账号下域名超过 100 个，逐级向上调用 Domain.Info 精确匹配主域名
+  candidate="$fullname"
+  while [ -n "$candidate" ] && [[ "$candidate" == *.* ]]; do
+    local info_res info_code
+    info_res=$(curl -sm10 -X POST "https://dnsapi.cn/Domain.Info" \
+      --data-urlencode "login_token=$dnspod_token" \
+      --data-urlencode "format=json" \
+      --data-urlencode "domain=$candidate")
+    info_code=$(echo "$info_res" | jq -r '.status.code // empty' 2>/dev/null)
+    if [ "$info_code" = "1" ]; then
+      DNSPOD_DOMAIN="$candidate"
+      if [ "$fullname" = "$candidate" ]; then
+        DNSPOD_SUBDOMAIN="@"
+      else
+        DNSPOD_SUBDOMAIN="${fullname%.$candidate}"
+      fi
+      return 0
+    fi
+    candidate=$(echo "$candidate" | cut -d '.' -f 2-)
+  done
 
-# 检查 cfcolo 变量是否为空
-if [[ -n "$cfcolo" ]]; then
-  cfcolo="-cfcolo $cfcolo"
-fi
+  return 1
+}
 
-# 检查 httping_code 变量是否为空
-if [[ -n "$httping_code" ]]; then
-  httping_code="-httping-code $httping_code"
-fi
+# 开始循环每个域名
+echo "正在更新域名解析，请稍等..."
+rm -f "${CF_DDNS_DIR}/hosts_new"
 
-# 检查 CFST_STM 变量是否为空
-if [[ -n "$CFST_STM" ]]; then
-  CFST_STM="-httping $httping_code $cfcolo"
-fi
-
-if [ "$IP_PR_IP" = "true" ] ; then
-  curl -sSf -o ./cf_ddns/pr_ip.txt https://cf.vbar.fun/pr_ip.txt
-  $cfst $CFST_URL_R -t $CFST_T -n $CFST_N -dn $CFST_DN -tl $CFST_TL  -sl $CFST_SL -p $CFST_P -tlr $CFST_TLR $CFST_STM -f ./cf_ddns/pr_ip.txt -o ./cfst/result.csv
-  rm ./cf_ddns/pr_ip.txt
-elif [ "$IP_ADDR" = "ipv6" ] ; then
-  #开始优选IPv6
-  $cfst $CFST_URL_R -t $CFST_T -n $CFST_N -dn $CFST_DN -tl $CFST_TL -tll $CFST_TLL -sl $CFST_SL -p $CFST_P -tlr $CFST_TLR $CFST_STM -f ./cfst/ipv6.txt -o ./cfst/result.csv
-else
-  #开始优选IPv4
-  $cfst $CFST_URL_R -t $CFST_T -n $CFST_N -dn $CFST_DN -tl $CFST_TL -tll $CFST_TLL -sl $CFST_SL -p $CFST_P -tlr $CFST_TLR $CFST_STM -f ./cfst/ip.txt -o ./cfst/result.csv
-fi
-echo "测速完毕";
-
-# 开始循环
-echo "正在更新域名，请稍后...";
-x=0;
+x=0
 while [[ ${x} -lt $num ]]; do
-  CDNhostname=${hostname[$x]};
-  
-  # 获取优选后的ip地址 
-  ipAddr=$(sed -n "$((x + 2)),1p" ./cfst/result.csv | awk -F, '{print $1}');
-  ipSpeed=$(sed -n "$((x + 2)),1p" ./cfst/result.csv | awk -F, '{print $6}');
-  if [ $ipSpeed = "0.00" ]; then
-    echo "第$((x + 1))个---$ipAddr测速为0，跳过更新DNS，检查配置是否能正常测速！";
+  CDNhostname=${hostname[$x]}
+  if [ "$((x + 1))" -le "$total_rows" ]; then
+    ipAddr=$(sed -n "$((x + 2)),1p" "$CSV_FILE" | awk -F, '{print $1}' | tr -d '\r')
+    ipSpeed=$(sed -n "$((x + 2)),1p" "$CSV_FILE" | awk -F, '{print $6}' | tr -d '\r')
+  else
+    ipAddr=""
+    ipSpeed=""
+  fi
+
+  if [[ "$ipSpeed" == "0.00" || -z "$ipSpeed" || -z "$ipAddr" ]]; then
+    log_inform "第$((x + 1))个---[${CDNhostname}] 无可用优选 IP（测速为0或可用 IP 不足，当前 CFST_SL=${CFST_SL} MB/s），跳过更新，保留旧解析！"
   else
     if [ "$IP_TO_HOSTS" = 1 ]; then
-      echo $ipAddr $CDNhostname >> ./cf_ddns/hosts_new
+      echo "$ipAddr $CDNhostname" >> "${CF_DDNS_DIR}/hosts_new"
     fi
-  
-    if [ "$IP_TO_DNSPOD" = 1 ]; then
-      echo "开始更新第$((x + 1))个---$ipAddr";
-    
-      # 开始DDNS
-      if [[ $ipAddr =~ $ipv4Regex ]]; then
-        recordType="A";
-      else
-        recordType="AAAA";
-      fi
 
-      # split domain and subdomain by .
-      IFS='.' read -ra arr <<< "$CDNhostname"
-      len=${#arr[@]}
-  
-      if [ $len -eq 1 ]; then
-        domain="$CDNhostname"
-        sub_domain="@"
-      elif [ $len -eq 2 ]; then
-        domain="$CDNhostname"
-        sub_domain="@"
+    if [ "$IP_TO_DNSPOD" = 1 ]; then
+      if ! dnspod_split_domain "$CDNhostname"; then
+        log_inform "[错误] 域名 [${CDNhostname}] 未在当前 DNSPod 账号下找到对应的主域名，跳过！"
       else
-        if [ "${arr[$len-2]}.${arr[$len-1]}" = "eu.org" ]; then
-          domain="${arr[$len-3]}.${arr[$len-2]}.${arr[$len-1]}"
-          if [ $len -eq 3 ]; then
-            sub_domain="@"
+        domain="$DNSPOD_DOMAIN"
+        sub_domain="$DNSPOD_SUBDOMAIN"
+
+        recordType="A"
+        [[ "$ipAddr" =~ ":" ]] && recordType="AAAA"
+
+        response=$(curl -sm10 -X POST "https://dnsapi.cn/Record.List" \
+          --data-urlencode "login_token=$dnspod_token" \
+          --data-urlencode "format=json" \
+          --data-urlencode "domain=$domain" \
+          --data-urlencode "sub_domain=$sub_domain" \
+          --data-urlencode "record_type=$recordType" \
+          --data-urlencode "record_line=$LINE")
+        status=$(echo "$response" | jq -r '.status.code // empty' 2>/dev/null)
+
+        if [ "$status" = "1" ]; then
+          record_id=$(echo "$response" | jq -r '.records[0].id // empty' 2>/dev/null)
+          update_response=$(curl -sm10 -X POST "https://dnsapi.cn/Record.Modify" \
+            --data-urlencode "login_token=$dnspod_token" \
+            --data-urlencode "format=json" \
+            --data-urlencode "domain=$domain" \
+            --data-urlencode "record_id=$record_id" \
+            --data-urlencode "sub_domain=$sub_domain" \
+            --data-urlencode "record_line=$LINE" \
+            --data-urlencode "record_type=$recordType" \
+            --data-urlencode "value=$ipAddr")
+          update_status=$(echo "$update_response" | jq -r '.status.code // empty' 2>/dev/null)
+          if [ "$update_status" = "1" ]; then
+            log_inform "  + [成功] ${CDNhostname} (${recordType}) -> ${ipAddr}"
           else
-            sub_domain="$(IFS='.'; echo "${arr[*]:0:$len-3}")"
+            err_msg=$(echo "$update_response" | jq -r '.status.message // "未知错误"' 2>/dev/null)
+            log_inform "  x [失败] ${CDNhostname} 更新失败: ${err_msg}"
+          fi
+        elif [ "$status" = "10" ]; then
+          create_response=$(curl -sm10 -X POST "https://dnsapi.cn/Record.Create" \
+            --data-urlencode "login_token=$dnspod_token" \
+            --data-urlencode "format=json" \
+            --data-urlencode "domain=$domain" \
+            --data-urlencode "sub_domain=$sub_domain" \
+            --data-urlencode "record_line=$LINE" \
+            --data-urlencode "record_type=$recordType" \
+            --data-urlencode "value=$ipAddr")
+          create_status=$(echo "$create_response" | jq -r '.status.code // empty' 2>/dev/null)
+          if [ "$create_status" = "1" ]; then
+            log_inform "  + [成功] ${CDNhostname} (${recordType}) 成功创建并更新 -> ${ipAddr}"
+          else
+            err_msg=$(echo "$create_response" | jq -r '.status.message // "未知错误"' 2>/dev/null)
+            log_inform "  x [失败] ${CDNhostname} 创建失败: ${err_msg}"
           fi
         else
-          domain="${arr[$len-2]}.${arr[$len-1]}"
-          sub_domain="$(IFS='.'; echo "${arr[*]:0:$len-2}")"
-        fi
-      fi
-    
-      DOMAIN_NAME=$domain
-      SUBDOMAIN=$sub_domain
-    
-      RESPONSE=$(curl -sX POST https://dnsapi.cn/Record.List -d "login_token=$dnspod_token&format=json&domain=$DOMAIN_NAME&sub_domain=$SUBDOMAIN")
-
-      STATUS=$(echo "$RESPONSE" | jq -r '.status.code')
-      if [ "$STATUS" == "1" ]; then
-        RECORD_ID=$(echo "$RESPONSE" | jq -r '.records[0].id')
-        declare -A line_id_dict=(
-                ["默认"]="0"
-                ["国内"]="7=0"
-                ["国外"]="3=0"
-                ["电信"]="10=0"
-                ["联通"]="10=1"
-                ["教育网"]="10=2"
-                ["移动"]="10=3"
-                ["百度"]="90=0"
-                ["谷歌"]="90=1"
-                ["搜搜"]="90=4"
-                ["有道"]="90=2"
-                ["必应"]="90=3"
-                ["搜狗"]="90=5"
-                ["奇虎"]="90=6"
-                ["搜索引擎"]="80=0"
-         )
-
-        CURRENT_RECORD_LINE=$(echo "$RESPONSE" | jq -r '.records[0].line_id')
-
-        for key in "${!line_id_dict[@]}"
-        do
-            if [ "${line_id_dict[$key]}" == "$CURRENT_RECORD_LINE" ]
-            then
-                if [ "$RECORD_LINE" == "$key" ]
-                then
-                    RESPONSE=$(curl -sX POST https://dnsapi.cn/Record.Modify -d "login_token=$dnspod_token&format=json&domain=$DOMAIN_NAME&record_id=$RECORD_ID&sub_domain=$SUBDOMAIN&record_line=$RECORD_LINE&record_type=$recordType" -d "value=$ipAddr")
-                    STATUS=$(echo "$RESPONSE" | jq -r '.status.code')
-                    if [ "$STATUS" == "1" ]; then
-                      echo "$CDNhostname更新成功"
-                    else
-                      echo "$CDNhostname更新失败"
-                    fi
-                else
-                    RESPONSE=$(curl -sX POST https://dnsapi.cn/Record.Create -d "login_token=$dnspod_token&format=json&domain=$DOMAIN_NAME&sub_domain=$SUBDOMAIN&record_line=$RECORD_LINE&record_type=$recordType" -d "value=$ipAddr")
-                    STATUS=$(echo "$RESPONSE" | jq -r '.status.code')
-                    if [ "$STATUS" == "1" ]; then
-                      echo "$CDNhostname添加成功"
-                    else
-                      echo "$CDNhostname添加失败"
-                    fi
-                fi
-                break
-            fi
-        done
-      else
-        RESPONSE=$(curl -sX POST https://dnsapi.cn/Record.Create -d "login_token=$dnspod_token&format=json&domain=$DOMAIN_NAME&sub_domain=$SUBDOMAIN&record_line=$RECORD_LINE&record_type=$recordType" -d "value=$ipAddr")
-        STATUS=$(echo "$RESPONSE" | jq -r '.status.code')
-        if [ "$STATUS" == "1" ]; then
-          echo "$CDNhostname添加成功"
-        else
-          echo "$CDNhostname添加失败"
+          err_msg=$(echo "$response" | jq -r '.status.message // "查询记录失败"' 2>/dev/null)
+          log_inform "  x [失败] ${CDNhostname} 查询解析记录失败: ${err_msg}"
         fi
       fi
     fi
   fi
+  x=$((x + 1))
+  sleep 2
+done
 
-  ((x++))
-    sleep 3
-done > $informlog
-
-if [ "$IP_TO_HOSTS" = 1 ]; then
-  if [ ! -f "/etc/hosts.old_cfstddns_bak" ]; then
-    cp /etc/hosts /etc/hosts.old_cfstddns_bak
-    cat ./cf_ddns/hosts_new >> /etc/hosts
-  else
-    rm /etc/hosts
-    cp /etc/hosts.old_cfstddns_bak /etc/hosts
-    cat ./cf_ddns/hosts_new >> /etc/hosts
-    echo "hosts已更新"
-    echo "hosts已更新" >> $informlog
-    rm ./cf_ddns/hosts_new
-  fi
-fi
+update_etc_hosts

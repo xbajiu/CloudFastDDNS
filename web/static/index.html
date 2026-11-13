@@ -1,0 +1,1918 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CloudFastDDNS 控制台</title>
+  <style>
+    :root {
+      --bg: #f6f8fa;
+      --surface: #ffffff;
+      --surface-alt: #f0f3f6;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-secondary: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-soft: rgba(37, 99, 235, 0.1);
+      --success: #10b981;
+      --success-soft: rgba(16, 185, 129, 0.12);
+      --danger: #ef4444;
+      --danger-soft: rgba(239, 68, 68, 0.12);
+      --warning: #f59e0b;
+      --warning-soft: rgba(245, 158, 11, 0.12);
+      --terminal-bg: #111827;
+      --terminal-text: #e5e7eb;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+      --radius: 10px;
+    }
+
+    [data-theme="dark"] {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-alt: #0f172a;
+      --border: #334155;
+      --text: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #60a5fa;
+      --primary-soft: rgba(59, 130, 246, 0.18);
+      --success: #10b981;
+      --success-soft: rgba(16, 185, 129, 0.18);
+      --danger: #f87171;
+      --danger-soft: rgba(248, 113, 113, 0.18);
+      --warning: #fbbf24;
+      --warning-soft: rgba(251, 191, 36, 0.18);
+      --terminal-bg: #090d16;
+      --terminal-text: #d1d5db;
+      --shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      transition: background-color 0.2s ease, color 0.2s ease;
+      padding-bottom: 40px;
+    }
+
+    .container {
+      max-width: 1220px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* Top Header */
+    .navbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: var(--shadow);
+    }
+
+    .navbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-sub {
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: var(--surface-alt);
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 15px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-hover);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: #fff;
+    }
+    .btn-success:hover:not(:disabled) {
+      filter: brightness(0.95);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: #fff;
+    }
+    .btn-danger:hover:not(:disabled) {
+      filter: brightness(0.95);
+    }
+
+    .btn-outline {
+      background: var(--surface);
+      color: var(--text);
+      border-color: var(--border);
+    }
+    .btn-outline:hover:not(:disabled) {
+      background: var(--surface-alt);
+    }
+
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 12px;
+      border-radius: 6px;
+    }
+
+    /* Status Overview Strip */
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .status-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 560px) {
+      .status-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 15px 18px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .stat-value {
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stat-meta {
+      font-size: 12px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Status Dot */
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .dot-idle {
+      background: var(--success);
+    }
+    .dot-running {
+      background: var(--primary);
+      box-shadow: 0 0 0 4px var(--primary-soft);
+      animation: pulse 1.4s infinite;
+    }
+    .dot-stopped {
+      background: var(--warning);
+    }
+    .dot-error {
+      background: var(--danger);
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 1; }
+      50% { transform: scale(1.15); opacity: 0.7; }
+      100% { transform: scale(0.95); opacity: 1; }
+    }
+
+    /* Main Two-Column / Stacked Grid */
+    .monitor-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 960px) {
+      .monitor-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-header {
+      padding: 13px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .card-title {
+      font-size: 14.5px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-body {
+      padding: 16px 18px;
+      flex: 1;
+    }
+
+    /* Terminal Log Box */
+    .terminal-box {
+      background: var(--terminal-bg);
+      color: var(--terminal-text);
+      font-family: "JetBrains Mono", Consolas, "Courier New", monospace;
+      font-size: 12.5px;
+      line-height: 1.55;
+      height: 310px;
+      overflow-y: auto;
+      padding: 12px 14px;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .log-line {
+      margin-bottom: 2px;
+    }
+    .log-ok { color: #34d399; }
+    .log-err { color: #f87171; }
+    .log-info { color: #60a5fa; }
+    .log-warn { color: #fbbf24; }
+
+    /* Results Table */
+    .table-wrap {
+      height: 310px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: var(--surface-alt);
+      color: var(--text-secondary);
+      font-weight: 600;
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    td {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: var(--surface-alt);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-rank {
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+    .badge-speed {
+      background: var(--success-soft);
+      color: var(--success);
+    }
+
+    .empty-state {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      font-size: 13px;
+      gap: 6px;
+      padding: 30px;
+      text-align: center;
+    }
+
+    /* Config Section */
+    .config-section {
+      margin-top: 18px;
+    }
+
+    .tabs-bar {
+      display: flex;
+      gap: 6px;
+      padding: 12px 18px 0;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      padding: 9px 16px;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      font-weight: 600;
+    }
+
+    .tab-pane {
+      display: none;
+      padding: 20px 18px;
+    }
+
+    .tab-pane.active {
+      display: block;
+    }
+
+    /* Form Grid */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px 22px;
+    }
+
+    @media (max-width: 768px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-item.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .form-label {
+      font-size: 13.5px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .form-key {
+      font-size: 11.5px;
+      font-weight: 400;
+      color: var(--text-secondary);
+      font-family: monospace;
+    }
+
+    .form-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* Input Controls */
+    .input, .select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface-alt);
+      color: var(--text);
+      font-size: 13.5px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .input:focus, .select:focus {
+      border-color: var(--primary);
+      background: var(--surface);
+    }
+
+    .input-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    /* Segmented Button Group */
+    .seg-group {
+      display: inline-flex;
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .seg-btn {
+      flex: 1;
+      padding: 6px 12px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+      text-align: center;
+    }
+
+    .seg-btn.active {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    /* Preset Chips */
+    .preset-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .preset-btn {
+      padding: 3px 9px;
+      font-size: 11.5px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    .preset-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* Domain Tag Manager */
+    .tags-box {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface-alt);
+      min-height: 44px;
+      align-items: center;
+    }
+
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .tag-remove {
+      border: none;
+      background: transparent;
+      color: var(--primary);
+      cursor: pointer;
+      font-size: 15px;
+      line-height: 1;
+      padding: 0 2px;
+    }
+    .tag-remove:hover {
+      color: var(--danger);
+    }
+
+    /* Push Sub-cards */
+    .push-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 768px) {
+      .push-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .sub-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      background: var(--surface-alt);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .sub-card-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--text);
+      color: var(--surface);
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: all 0.2s ease;
+      z-index: 100;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Conflict / Disabled Options */
+    .is-disabled {
+      opacity: 0.42;
+      filter: grayscale(1);
+      pointer-events: none;
+      user-select: none;
+      transition: opacity 0.15s;
+    }
+    .input:disabled {
+      cursor: not-allowed;
+    }
+    .disabled-tip {
+      display: none;
+      font-size: 11.5px;
+      color: var(--warning);
+    }
+    .is-disabled .disabled-tip {
+      display: inline;
+    }
+
+    /* Tabs bar save button (right aligned) */
+    .tabs-bar .tabs-save {
+      margin-left: auto;
+      align-self: center;
+      margin-bottom: 6px;
+      flex-shrink: 0;
+    }
+
+    /* Mobile Responsive Adaptation */
+    .btn-text-mobile {
+      display: none;
+    }
+    .btn-text-full {
+      display: inline;
+    }
+
+    /* Emoji-only theme button */
+    #btnTheme {
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      font-size: 16px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    @media (max-width: 680px) {
+      .container {
+        padding: 0 12px;
+      }
+      .navbar-inner {
+        height: auto;
+        min-height: 52px;
+        padding: 6px 0;
+        gap: 8px;
+        flex-wrap: nowrap;
+      }
+      .brand {
+        gap: 6px;
+        min-width: 0;
+        flex-shrink: 1;
+      }
+      .brand-logo {
+        width: 28px;
+        height: 28px;
+        font-size: 13px;
+        border-radius: 6px;
+        flex-shrink: 0;
+      }
+      .brand-title {
+        font-size: 14.5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .brand-sub {
+        display: none !important;
+      }
+      .nav-actions {
+        gap: 6px;
+        flex-shrink: 0;
+      }
+      .nav-actions .btn {
+        padding: 0 9px;
+        height: 32px;
+        font-size: 12.5px;
+        border-radius: 6px;
+        font-weight: 600;
+        box-sizing: border-box;
+      }
+      .btn-text-full {
+        display: none;
+      }
+      .btn-text-mobile {
+        display: inline;
+      }
+      #btnTheme {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        font-size: 15px;
+        border-radius: 6px;
+      }
+      .tabs-bar {
+        padding: 6px 8px 0;
+        gap: 4px;
+      }
+      .tab-btn {
+        padding: 7px 9px;
+        font-size: 12px;
+      }
+      .tabs-bar .tabs-save {
+        padding: 4px 9px;
+        font-size: 12px;
+        height: 28px;
+      }
+      .card-header {
+        padding: 10px 12px;
+      }
+      .terminal-box {
+        font-size: 12px;
+        padding: 10px 12px;
+      }
+    }
+  </style>
+  <script>
+    // 首屏前按系统主题/手动选择设置，避免闪烁
+    (function () {
+      try {
+        var o = localStorage.getItem("cfddns_theme_override");
+        var dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.setAttribute("data-theme", o || (dark ? "dark" : "light"));
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <div class="brand">
+        <div class="brand-logo">CF</div>
+        <span class="brand-title">CloudFastDDNS</span>
+        <span class="brand-sub" id="configPathBadge">/opt/cloudfastddns</span>
+      </div>
+      <div class="nav-actions">
+        <button class="btn btn-success" id="btnStart" onclick="startTask()" title="开始优选任务">
+          <span>▶ <span class="btn-text-full">开始运行</span><span class="btn-text-mobile">开始</span></span>
+        </button>
+        <button class="btn btn-danger" id="btnStop" onclick="stopTask()" disabled title="停止优选任务">
+          <span>■ <span class="btn-text-full">结束运行</span><span class="btn-text-mobile">结束</span></span>
+        </button>
+        <button class="btn btn-outline" id="btnTheme" onclick="toggleTheme()" title="切换白天/夜晚模式 (默认跟随系统)">
+          <span id="themeIcon">🌙</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Status Overview Cards -->
+    <section class="status-grid">
+      <div class="stat-card">
+        <div class="stat-label">
+          <span>运行状态</span>
+          <span id="pidBadge" class="form-key"></span>
+        </div>
+        <div class="stat-value">
+          <span class="dot dot-idle" id="statusDot"></span>
+          <span id="statusText">空闲待命</span>
+        </div>
+        <div class="stat-meta" id="phaseText">等待任务触发</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">
+          <span>当前最优 IP</span>
+          <span id="bestColoBadge" class="form-key"></span>
+        </div>
+        <div class="stat-value" id="bestIpText">暂无数据</div>
+        <div class="stat-meta" id="bestSpeedText">点击“开始运行”获取优选结果</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">
+          <span>定时任务与耗时</span>
+          <span id="autoRunBadge" class="form-key">已开启</span>
+        </div>
+        <div class="stat-value" id="timingDisplay">0 */6 * * *</div>
+        <div class="stat-meta" id="lastRunText">上次运行: 暂无记录</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">
+          <span>核心环境与代理</span>
+          <span class="form-key">cfst</span>
+        </div>
+        <div class="stat-value" id="envStatusText">已就绪</div>
+        <div class="stat-meta" id="proxyDisplay">代理: https://gh-proxy.com/</div>
+      </div>
+    </section>
+
+    <!-- Real-time Logs & Preferred IP Results -->
+    <section class="monitor-grid">
+      <!-- Real-time Running Logs -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>📜 实时运行日志</span>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-outline btn-sm" id="btnAutoScroll" onclick="toggleAutoScroll()">
+              自动滚动: 开
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="clearLogs()">
+              清空日志
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="terminal-box" id="logBox">正在加载运行日志...</div>
+        </div>
+      </div>
+
+      <!-- Preferred IP Results -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>⚡ 优选 IP 结果</span>
+            <span class="form-key" id="resultUpdatedAt"></span>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="fetchResults()">
+            刷新结果
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap" id="resultTableWrap">
+            <div class="empty-state">暂无优选 IP 数据，请点击上方“开始运行”进行测速</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Categorized Config Form -->
+    <section class="card config-section">
+      <div class="tabs-bar">
+        <button class="tab-btn active" onclick="switchTab('tab-basic', this)">1. 基础与工作模式</button>
+        <button class="tab-btn" onclick="switchTab('tab-dns', this)">2. DNS 服务商配置</button>
+        <button class="tab-btn" onclick="switchTab('tab-cfst', this)">3. CFST 测速参数</button>
+        <button class="tab-btn" onclick="switchTab('tab-push', this)">4. 消息推送通知</button>
+        <button class="btn btn-primary btn-sm tabs-save" id="btnSave" onclick="saveConfig()">💾 保存配置</button>
+      </div>
+
+      <!-- Tab 1: Basic & Work Mode -->
+      <div class="tab-pane active" id="tab-basic">
+        <div class="form-grid">
+          <div class="form-item full-width">
+            <div class="form-label">
+              <span>GitHub 代理加速地址 (仅首次部署拉取 cfst 时使用)</span>
+              <span class="form-key">PROXY</span>
+            </div>
+            <div class="input-group">
+              <input type="text" class="input" id="cfg_PROXY" placeholder="https://gh-proxy.com/" />
+              <button type="button" class="btn btn-outline" onclick="setInput('PROXY','https://gh-proxy.com/')">重置默认</button>
+            </div>
+            <div class="preset-row">
+              <button type="button" class="preset-btn" onclick="setInput('PROXY','https://gh-proxy.com/')">https://gh-proxy.com/ (默认)</button>
+              <button type="button" class="preset-btn" onclick="setInput('PROXY','https://ghfast.top/')">https://ghfast.top/</button>
+              <button type="button" class="preset-btn" onclick="setInput('PROXY','')">不使用代理 (直连 GitHub)</button>
+            </div>
+          </div>
+
+          <div class="form-item">
+            <div class="form-label">
+              <span>定时自动运行</span>
+              <span class="form-key">AUTO_RUN</span>
+            </div>
+            <div class="seg-group" data-field="AUTO_RUN">
+              <button type="button" class="seg-btn" data-val="true" onclick="setSeg('AUTO_RUN','true')">开启定时</button>
+              <button type="button" class="seg-btn" data-val="false" onclick="setSeg('AUTO_RUN','false')">关闭定时</button>
+            </div>
+            <div class="form-desc">开启后将按照设定的 Cron 表达式在后台定期执行优选与 DDNS 更新</div>
+          </div>
+
+          <div class="form-item" id="item_TIMING">
+            <div class="form-label">
+              <span>定时执行周期 (Cron 表达式) <span class="disabled-tip">· 已关闭定时</span></span>
+              <span class="form-key">TIMING</span>
+            </div>
+            <input type="text" class="input" id="cfg_TIMING" placeholder="0 */6 * * *" />
+            <div class="preset-row">
+              <button type="button" class="preset-btn" onclick="setInput('TIMING','0 */2 * * *')">每2小时</button>
+              <button type="button" class="preset-btn" onclick="setInput('TIMING','0 */6 * * *')">每6小时</button>
+              <button type="button" class="preset-btn" onclick="setInput('TIMING','0 */12 * * *')">每12小时</button>
+              <button type="button" class="preset-btn" onclick="setInput('TIMING','30 3 * * *')">每天凌晨 3:30</button>
+              <button type="button" class="preset-btn" onclick="setInput('TIMING','*/30 * * * *')">每30分钟</button>
+            </div>
+          </div>
+
+          <div class="form-item" id="item_IP_ADDR">
+            <div class="form-label">
+              <span>IP 协议版本 <span class="disabled-tip">· 反代 IP 仅支持 IPv4</span></span>
+              <span class="form-key">IP_ADDR</span>
+            </div>
+            <div class="seg-group" data-field="IP_ADDR">
+              <button type="button" class="seg-btn" data-val="ipv4" onclick="setSeg('IP_ADDR','ipv4')">IPv4 优选</button>
+              <button type="button" class="seg-btn" data-val="ipv6" onclick="setSeg('IP_ADDR','ipv6')">IPv6 优选</button>
+            </div>
+            <div class="form-desc">指定工作模式为 ipv4 还是 ipv6</div>
+          </div>
+
+          <div class="form-item" id="item_IP_PR_IP">
+            <div class="form-label">
+              <span>是否使用反代 IP <span class="disabled-tip">· IPv6 模式不可用</span></span>
+              <span class="form-key">IP_PR_IP</span>
+            </div>
+            <div class="seg-group" data-field="IP_PR_IP">
+              <button type="button" class="seg-btn" data-val="0" onclick="setSeg('IP_PR_IP','0')">0 = 关闭</button>
+              <button type="button" class="seg-btn" data-val="1" onclick="setSeg('IP_PR_IP','1')">1 = 线路1 (ip-scanner)</button>
+              <button type="button" class="seg-btn" data-val="2" onclick="setSeg('IP_PR_IP','2')">2 = 线路2 (cf_push)</button>
+            </div>
+            <div class="form-desc">是否使用优质 CF 反代 IP 地址进行优选 (默认：0 关闭)</div>
+          </div>
+
+          <div class="form-item">
+            <div class="form-label">
+              <span>是否同步更新到 Hosts</span>
+              <span class="form-key">IP_TO_HOSTS</span>
+            </div>
+            <div class="seg-group" data-field="IP_TO_HOSTS">
+              <button type="button" class="seg-btn" data-val="false" onclick="setSeg('IP_TO_HOSTS','false')">false = 不更新</button>
+              <button type="button" class="seg-btn" data-val="true" onclick="setSeg('IP_TO_HOSTS','true')">true = 开启更新</button>
+            </div>
+            <div class="form-desc">开启后会将优选出的 IP 同步写入 /etc/hosts</div>
+          </div>
+
+          <div class="form-item" id="item_MULTI_IP">
+            <div class="form-label">
+              <span>一个域名解析多个 IP</span>
+              <span class="form-key">MULTI_IP</span>
+            </div>
+            <div class="seg-group" data-field="MULTI_IP">
+              <button type="button" class="seg-btn" data-val="false" onclick="setSeg('MULTI_IP','false')">一域名单IP (关闭)</button>
+              <button type="button" class="seg-btn" data-val="true" onclick="setSeg('MULTI_IP','true')">一域名多IP (开启)</button>
+            </div>
+            <div class="form-desc">开启后每个域名同时解析多个优选IP；更新时自动清理旧解析记录</div>
+          </div>
+
+          <div class="form-item full-width">
+            <div class="form-label">
+              <span>填写需要 DDNS 的完整域名</span>
+              <span class="form-key">hostname</span>
+            </div>
+            <div class="tags-box" id="hostnameTags"></div>
+            <div class="input-group" style="margin-top: 6px;">
+              <input type="text" class="input" id="newHostnameInput" placeholder="输入完整域名，例如 cdn.test.com，按回车或点击添加" onkeydown="if(event.key==='Enter'){event.preventDefault();addHostname();}" />
+              <button type="button" class="btn btn-primary" onclick="addHostname()">+ 添加域名</button>
+            </div>
+            <div class="form-desc">支持多域名，自动按 config.conf 的 hostname=(...) 格式保存</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: DNS Provider Settings -->
+      <div class="tab-pane" id="tab-dns">
+        <div class="form-grid">
+          <div class="form-item full-width">
+            <div class="form-label">
+              <span>选择 DNS 服务商</span>
+              <span class="form-key">DNS_PROVIDER</span>
+            </div>
+            <div class="seg-group" data-field="DNS_PROVIDER">
+              <button type="button" class="seg-btn" data-val="1" onclick="setSeg('DNS_PROVIDER','1')">1 = Cloudflare</button>
+              <button type="button" class="seg-btn" data-val="2" onclick="setSeg('DNS_PROVIDER','2')">2 = DNSPod</button>
+            </div>
+          </div>
+
+          <!-- Cloudflare Sub-card (main branch: only x_email and api_key) -->
+          <div class="sub-card" id="card_cf">
+            <div class="sub-card-title">
+              <span>☁️ Cloudflare 配置 <span class="disabled-tip">· 当前选择 DNSPod</span></span>
+              <span class="badge badge-rank">DNS_PROVIDER = 1</span>
+            </div>
+
+            <div class="form-item">
+              <div class="form-label">
+                <span>Cloudflare 账号邮箱</span>
+                <span class="form-key">x_email</span>
+              </div>
+              <input type="email" class="input" id="cfg_x_email" placeholder="填写 Cloudflare 账号注册邮箱" />
+            </div>
+
+            <div class="form-item">
+              <div class="form-label">
+                <span>Global API Key</span>
+                <span class="form-key">api_key</span>
+              </div>
+              <div class="input-group">
+                <input type="password" class="input" id="cfg_api_key" placeholder="填写 Cloudflare Global API Key" />
+                <button type="button" class="btn btn-outline" onclick="togglePwd('cfg_api_key')">显示</button>
+              </div>
+              <div class="form-desc">空间 Zone ID 将在运行时根据所填域名通过 API 自动获取，无需手动填写</div>
+            </div>
+
+            <div class="form-item" id="item_MULTI_IP_NUM">
+              <div class="form-label">
+                <span>每个域名解析 IP 数量 <span class="disabled-tip">· 需开启一域名多IP</span></span>
+                <span class="form-key">MULTI_IP_NUM</span>
+              </div>
+              <input type="number" class="input" id="cfg_MULTI_IP_NUM" min="1" max="50" placeholder="3" />
+              <div class="preset-row">
+                <button type="button" class="preset-btn" onclick="setInput('MULTI_IP_NUM','2')">2 个</button>
+                <button type="button" class="preset-btn" onclick="setInput('MULTI_IP_NUM','3')">3 个 (默认)</button>
+                <button type="button" class="preset-btn" onclick="setInput('MULTI_IP_NUM','5')">5 个</button>
+                <button type="button" class="preset-btn" onclick="setInput('MULTI_IP_NUM','10')">10 个</button>
+              </div>
+              <div class="form-desc">从优选结果中按速度排名取前 N 个 IP；下载测速数量 CFST_DN 小于该值时会自动提高</div>
+            </div>
+          </div>
+
+          <!-- DNSPod Sub-card -->
+          <div class="sub-card" id="card_dnspod">
+            <div class="sub-card-title">
+              <span>🌐 DNSPod 配置 <span class="disabled-tip">· 当前选择 Cloudflare</span></span>
+              <span class="badge badge-rank">DNS_PROVIDER = 2</span>
+            </div>
+
+            <div class="form-item">
+              <div class="form-label">
+                <span>DNSPod 的 ID,Token</span>
+                <span class="form-key">dnspod_token</span>
+              </div>
+              <div class="input-group">
+                <input type="password" class="input" id="cfg_dnspod_token" placeholder="格式: 123456,abcd123abcd123..." />
+                <button type="button" class="btn btn-outline" onclick="togglePwd('cfg_dnspod_token')">显示</button>
+              </div>
+              <div class="form-desc">API密钥 - DNSPod Token（注意不是腾讯云API密钥），填写格式为 ID,Token</div>
+            </div>
+
+            <div class="form-item">
+              <div class="form-label">
+                <span>选择线路</span>
+                <span class="form-key">LINE</span>
+              </div>
+              <div class="seg-group" data-field="LINE">
+                <button type="button" class="seg-btn" data-val="0" onclick="setSeg('LINE','0')">默认</button>
+                <button type="button" class="seg-btn" data-val="1" onclick="setSeg('LINE','1')">电信</button>
+                <button type="button" class="seg-btn" data-val="2" onclick="setSeg('LINE','2')">联通</button>
+                <button type="button" class="seg-btn" data-val="3" onclick="setSeg('LINE','3')">移动</button>
+                <button type="button" class="seg-btn" data-val="4" onclick="setSeg('LINE','4')">铁通</button>
+                <button type="button" class="seg-btn" data-val="5" onclick="setSeg('LINE','5')">广电</button>
+                <button type="button" class="seg-btn" data-val="6" onclick="setSeg('LINE','6')">教育网</button>
+                <button type="button" class="seg-btn" data-val="7" onclick="setSeg('LINE','7')">境内</button>
+                <button type="button" class="seg-btn" data-val="8" onclick="setSeg('LINE','8')">境外</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: CloudflareST SpeedTest Settings -->
+      <div class="tab-pane" id="tab-cfst">
+        <div class="form-grid">
+          <div class="form-item">
+            <div class="form-label">
+              <span>测速模式</span>
+              <span class="form-key">CFST_STM</span>
+            </div>
+            <div class="seg-group" data-field="CFST_STM">
+              <button type="button" class="seg-btn" data-val="" onclick="setSeg('CFST_STM','')">TCPing (默认留空)</button>
+              <button type="button" class="seg-btn" data-val="httping" onclick="setSeg('CFST_STM','httping')">HTTPing 模式</button>
+            </div>
+          </div>
+
+          <div class="form-item">
+            <div class="form-label">
+              <span>测速地址</span>
+              <span class="form-key">CFST_URL</span>
+            </div>
+            <div class="input-group">
+              <input type="text" class="input" id="cfg_CFST_URL" placeholder="https://cf.xiu2.xyz/url" />
+              <button type="button" class="btn btn-outline" onclick="setInput('CFST_URL','https://cf.xiu2.xyz/url')">默认</button>
+            </div>
+          </div>
+
+          <div class="form-item">
+            <div class="form-label">
+              <span>测速地址端口</span>
+              <span class="form-key">CFST_TP</span>
+            </div>
+            <input type="number" class="input" id="cfg_CFST_TP" min="1" max="65535" placeholder="443" />
+            <div class="preset-row">
+              <button type="button" class="preset-btn" onclick="setInput('CFST_TP','443')">443</button>
+              <button type="button" class="preset-btn" onclick="setInput('CFST_TP','80')">80</button>
+              <button type="button" class="preset-btn" onclick="setInput('CFST_TP','2053')">2053</button>
+              <button type="button" class="preset-btn" onclick="setInput('CFST_TP','2083')">2083</button>
+              <button type="button" class="preset-btn" onclick="setInput('CFST_TP','2087')">2087</button>
+              <button type="button" class="preset-btn" onclick="setInput('CFST_TP','2096')">2096</button>
+              <button type="button" class="preset-btn" onclick="setInput('CFST_TP','8443')">8443</button>
+            </div>
+          </div>
+
+          <div class="form-item">
+            <div class="form-label">
+              <span>下载测速时间 (单个IP最长时间/秒)</span>
+              <span class="form-key">CFST_DT</span>
+            </div>
+            <input type="number" class="input" id="cfg_CFST_DT" min="1" max="120" placeholder="10" />
+            <div class="preset-row">
+              <button type="button" class="preset-btn" onclick="setInput('CFST_DT','5')">5 秒</button>
+              <button type="button" class="preset-btn" onclick="setInput('CFST_DT','10')">10 秒 (默认)</button>
+              <button type="button" class="preset-btn" onclick="setInput('CFST_DT','15')">15 秒</button>
+            </div>
+          </div>
+
+          <div class="form-item">
+            <div class="form-label">
+              <span>测速线程数量 (最多 1000)</span>
+              <span class="form-key">CFST_N</span>
+            </div>
+            <input type="number" class="input" id="cfg_CFST_N" min="1" max="1000" placeholder="200" />
+            <div class="preset-row">
+              <button type="button" class="preset-btn" onclick="setInput('CFST_N','100')">100</button>
+              <button type="button" class="preset-btn" onclick="setInput('CFST_N','200')">200 (默认)</button>
+              <button type="button" class="preset-btn" onclick="setInput('CFST_N','500')">500</button>
+            </div>
+          </div>
+
+          <div class="form-item">
+            <div class="form-label">
+              <span>延迟测速次数</span>
+              <span class="form-key">CFST_T</span>
+            </div>
+            <input type="number" class="input" id="cfg_CFST_T" min="1" max="50" placeholder="4" />
+            <div class="preset-row">
+              <button type="button" class="preset-btn" onclick="setInput('CFST_T','2')">2 次</button>
+              <button type="button" class="preset-btn" onclick="setInput('CFST_T','4')">4 次 (默认)</button>
+              <button type="button" class="preset-btn" onclick="setInput('CFST_T','10')">10 次</button>
+            </div>
+          </div>
+
+          <div class="form-item">
+            <div class="form-label">
+              <span>下载测速数量</span>
+              <span class="form-key">CFST_DN</span>
+            </div>
+            <input type="number" class="input" id="cfg_CFST_DN" min="1" max="200" placeholder="10" />
+            <div class="preset-row">
+              <button type="button" class="preset-btn" onclick="setInput('CFST_DN','5')">5 个</button>
+              <button type="button" class="preset-btn" onclick="setInput('CFST_DN','10')">10 个 (默认)</button>
+              <button type="button" class="preset-btn" onclick="setInput('CFST_DN','20')">20 个</button>
+            </div>
+          </div>
+
+          <div class="form-item">
+            <div class="form-label">
+              <span>下载速度下限 (MB/s)</span>
+              <span class="form-key">CFST_SL</span>
+            </div>
+            <input type="number" class="input" id="cfg_CFST_SL" min="0" step="0.5" placeholder="5" />
+            <div class="preset-row">
+              <button type="button" class="preset-btn" onclick="setInput('CFST_SL','0')">0 (不限速)</button>
+              <button type="button" class="preset-btn" onclick="setInput('CFST_SL','5')">5 MB/s (推荐)</button>
+              <button type="button" class="preset-btn" onclick="setInput('CFST_SL','10')">10 MB/s</button>
+            </div>
+          </div>
+
+          <div class="form-item">
+            <div class="form-label">
+              <span>平均延迟上限 (ms)</span>
+              <span class="form-key">CFST_TL</span>
+            </div>
+            <input type="number" class="input" id="cfg_CFST_TL" min="1" max="9999" placeholder="300" />
+            <div class="preset-row">
+              <button type="button" class="preset-btn" onclick="setInput('CFST_TL','200')">200 ms</button>
+              <button type="button" class="preset-btn" onclick="setInput('CFST_TL','300')">300 ms (推荐)</button>
+              <button type="button" class="preset-btn" onclick="setInput('CFST_TL','500')">500 ms</button>
+            </div>
+          </div>
+
+          <div class="form-item" id="item_CFST_TLL">
+            <div class="form-label">
+              <span>平均延迟下限 (ms) <span class="disabled-tip">· 反代 IP 模式不生效</span></span>
+              <span class="form-key">CFST_TLL</span>
+            </div>
+            <input type="number" class="input" id="cfg_CFST_TLL" min="0" max="2000" placeholder="0" />
+            <div class="preset-row">
+              <button type="button" class="preset-btn" onclick="setInput('CFST_TLL','0')">0 ms (默认)</button>
+              <button type="button" class="preset-btn" onclick="setInput('CFST_TLL','40')">40 ms (推荐过滤假墙)</button>
+            </div>
+          </div>
+
+          <div class="form-item">
+            <div class="form-label">
+              <span>丢包几率上限 (0.00 ~ 1.00)</span>
+              <span class="form-key">CFST_TLR</span>
+            </div>
+            <input type="number" class="input" id="cfg_CFST_TLR" min="0" max="1" step="0.05" placeholder="0.2" />
+            <div class="preset-row">
+              <button type="button" class="preset-btn" onclick="setInput('CFST_TLR','0')">0 (零丢包)</button>
+              <button type="button" class="preset-btn" onclick="setInput('CFST_TLR','0.2')">0.2 (推荐)</button>
+              <button type="button" class="preset-btn" onclick="setInput('CFST_TLR','1')">1.0</button>
+            </div>
+          </div>
+
+          <div class="form-item" id="item_httping_code">
+            <div class="form-label">
+              <span>有效状态代码 (仅 HTTPing) <span class="disabled-tip">· TCPing 模式不可用</span></span>
+              <span class="form-key">httping_code</span>
+            </div>
+            <input type="text" class="input" id="cfg_httping_code" placeholder="默认留空 (200 301 302)" />
+            <div class="preset-row">
+              <button type="button" class="preset-btn" onclick="setInput('httping_code','')">默认</button>
+              <button type="button" class="preset-btn" onclick="setInput('httping_code','200')">200</button>
+            </div>
+          </div>
+
+          <div class="form-item full-width" id="item_cfcolo">
+            <div class="form-label">
+              <span>匹配指定地区 (机场三字码，仅 HTTPing 可用) <span class="disabled-tip">· TCPing 模式不可用</span></span>
+              <span class="form-key">cfcolo</span>
+            </div>
+            <input type="text" class="input" id="cfg_cfcolo" placeholder="例如: HKG,KHH,NRT,LAX,SEA,SJC,FRA,MAD" />
+            <div class="preset-row">
+              <button type="button" class="preset-btn" onclick="setInput('cfcolo','')">所有地区 (默认)</button>
+              <button type="button" class="preset-btn" onclick="setInput('cfcolo','HKG,KHH,TPE')">港澳台 (HKG,KHH,TPE)</button>
+              <button type="button" class="preset-btn" onclick="setInput('cfcolo','NRT,KIX,ICN,SIN')">亚太 (NRT,KIX,ICN,SIN)</button>
+              <button type="button" class="preset-btn" onclick="setInput('cfcolo','LAX,SJC,SEA')">美西 (LAX,SJC,SEA)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 4: Push Notifications -->
+      <div class="tab-pane" id="tab-push">
+        <div class="push-grid">
+          <!-- Telegram -->
+          <div class="sub-card">
+            <div class="sub-card-title">
+              <span>✈️ TG 推送设置</span>
+              <span class="form-key">填写即开启</span>
+            </div>
+            <div class="form-item">
+              <div class="form-label"><span>TG 机器人 token</span><span class="form-key">telegramBotToken</span></div>
+              <div class="input-group">
+                <input type="password" class="input" id="cfg_telegramBotToken" placeholder="123456789:ABCDEFG..." />
+                <button type="button" class="btn btn-outline" onclick="togglePwd('cfg_telegramBotToken')">显示</button>
+              </div>
+            </div>
+            <div class="form-item">
+              <div class="form-label"><span>用户 ID 或频道、群 ID</span><span class="form-key">telegramBotUserId</span></div>
+              <input type="text" class="input" id="cfg_telegramBotUserId" placeholder="例如: 123456789" />
+            </div>
+            <div class="form-item">
+              <div class="form-label"><span>TG 推送代理域名</span><span class="form-key">Proxy_TG</span></div>
+              <input type="text" class="input" id="cfg_Proxy_TG" placeholder="留空默认 https://api.telegram.org" />
+            </div>
+          </div>
+
+          <!-- WeCom -->
+          <div class="sub-card">
+            <div class="sub-card-title">
+              <span>💼 企业微信推送设置</span>
+              <span class="form-key">填写即开启</span>
+            </div>
+            <div class="form-item">
+              <div class="form-label"><span>企业 ID</span><span class="form-key">CORPID</span></div>
+              <input type="text" class="input" id="cfg_CORPID" placeholder="填写企业微信 CORPID" />
+            </div>
+            <div class="form-item">
+              <div class="form-label"><span>应用 Secret</span><span class="form-key">SECRET</span></div>
+              <div class="input-group">
+                <input type="password" class="input" id="cfg_SECRET" placeholder="填写应用 SECRET" />
+                <button type="button" class="btn btn-outline" onclick="togglePwd('cfg_SECRET')">显示</button>
+              </div>
+            </div>
+            <div class="form-grid" style="gap:10px;">
+              <div class="form-item">
+                <div class="form-label"><span>AgentId</span><span class="form-key">AGENTID</span></div>
+                <input type="text" class="input" id="cfg_AGENTID" placeholder="1000002" />
+              </div>
+              <div class="form-item">
+                <div class="form-label"><span>成员 ID</span><span class="form-key">USERID</span></div>
+                <input type="text" class="input" id="cfg_USERID" placeholder="不填默认推送全员" />
+              </div>
+            </div>
+            <div class="form-item">
+              <div class="form-label"><span>企业微信推送代理域名</span><span class="form-key">Proxy_WX</span></div>
+              <input type="text" class="input" id="cfg_Proxy_WX" placeholder="留空默认 https://qyapi.weixin.qq.com" />
+            </div>
+          </div>
+
+          <!-- PushPlus -->
+          <div class="sub-card">
+            <div class="sub-card-title">
+              <span>🔔 PushPlus 设置</span>
+              <span class="form-key">PushPlusToken</span>
+            </div>
+            <div class="form-item">
+              <div class="input-group">
+                <input type="password" class="input" id="cfg_PushPlusToken" placeholder="填写 PushPlus token 码" />
+                <button type="button" class="btn btn-outline" onclick="togglePwd('cfg_PushPlusToken')">显示</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ServerChan -->
+          <div class="sub-card">
+            <div class="sub-card-title">
+              <span>📨 Server 酱推送设置</span>
+              <span class="form-key">ServerSendKey</span>
+            </div>
+            <div class="form-item">
+              <div class="input-group">
+                <input type="password" class="input" id="cfg_ServerSendKey" placeholder="填写 Server 酱 SendKey" />
+                <button type="button" class="btn btn-outline" onclick="togglePwd('cfg_ServerSendKey')">显示</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- PushDeer -->
+          <div class="sub-card">
+            <div class="sub-card-title">
+              <span>🦌 PushDeer 推送设置</span>
+              <span class="form-key">PushDeerPushKey</span>
+            </div>
+            <div class="form-item">
+              <div class="input-group">
+                <input type="password" class="input" id="cfg_PushDeerPushKey" placeholder="填写 PushDeer token 码" />
+                <button type="button" class="btn btn-outline" onclick="togglePwd('cfg_PushDeerPushKey')">显示</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Synology Chat -->
+          <div class="sub-card">
+            <div class="sub-card-title">
+              <span>💬 Synology Chat 推送</span>
+              <span class="form-key">Synology_Chat_URL</span>
+            </div>
+            <div class="form-item">
+              <input type="text" class="input" id="cfg_Synology_Chat_URL" placeholder="填写群晖 Chat Webhook URL 地址" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const INPUT_FIELDS = [
+      "PROXY", "TIMING", "x_email", "api_key", "dnspod_token",
+      "CFST_URL", "CFST_TP", "CFST_DT", "httping_code",
+      "cfcolo", "CFST_N", "CFST_T", "CFST_DN", "CFST_TL",
+      "CFST_TLL", "CFST_TLR", "CFST_SL", "telegramBotToken",
+      "telegramBotUserId", "Proxy_TG", "PushPlusToken", "ServerSendKey",
+      "PushDeerPushKey", "CORPID", "SECRET", "AGENTID", "USERID",
+      "Proxy_WX", "Synology_Chat_URL", "MULTI_IP_NUM"
+    ];
+
+    const SEG_FIELDS = [
+      "AUTO_RUN", "IP_ADDR", "IP_PR_IP", "IP_TO_HOSTS",
+      "DNS_PROVIDER", "LINE", "CFST_STM", "MULTI_IP"
+    ];
+
+    let currentConfig = { hostname: [] };
+    let autoScroll = true;
+    let wasRunning = false;
+
+    // Theme Setup: 默认跟随系统；点击按钮为手动覆盖，系统主题变化时恢复跟随系统
+    const darkMQ = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+
+    function systemTheme() {
+      return darkMQ && darkMQ.matches ? "dark" : "light";
+    }
+
+    function initTheme() {
+      localStorage.removeItem("cfddns_theme"); // 清理旧版本保存的固定主题
+      const override = localStorage.getItem("cfddns_theme_override");
+      applyTheme(override || systemTheme());
+      if (darkMQ) {
+        const onChange = () => {
+          localStorage.removeItem("cfddns_theme_override");
+          applyTheme(systemTheme());
+        };
+        if (darkMQ.addEventListener) darkMQ.addEventListener("change", onChange);
+        else if (darkMQ.addListener) darkMQ.addListener(onChange);
+      }
+    }
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      const iconEl = document.getElementById("themeIcon");
+      iconEl.textContent = theme === "dark" ? "☀️" : "🌙";
+    }
+
+    function toggleTheme() {
+      const curr = document.documentElement.getAttribute("data-theme") || "light";
+      const next = curr === "dark" ? "light" : "dark";
+      if (next === systemTheme()) {
+        localStorage.removeItem("cfddns_theme_override");
+      } else {
+        localStorage.setItem("cfddns_theme_override", next);
+      }
+      applyTheme(next);
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
+    }
+
+    function switchTab(tabId, btnEl) {
+      document.querySelectorAll(".tab-pane").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
+      document.getElementById(tabId).classList.add("active");
+      btnEl.classList.add("active");
+    }
+
+    function setSeg(field, value, skipConstraints) {
+      currentConfig[field] = String(value);
+      document.querySelectorAll(`.seg-group[data-field="${field}"]`).forEach(group => {
+        group.querySelectorAll(".seg-btn").forEach(btn => {
+          btn.classList.toggle("active", btn.getAttribute("data-val") === String(value));
+        });
+      });
+      if (!skipConstraints) applyConstraints();
+    }
+
+    // 将某个表单区域置灰并禁止编辑
+    function setDisabled(id, disabled) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.toggle("is-disabled", !!disabled);
+      el.setAttribute("aria-disabled", disabled ? "true" : "false");
+      el.querySelectorAll("input, button, select, textarea").forEach(c => {
+        c.disabled = !!disabled;
+      });
+    }
+
+    // 根据当前选择的模式，自动把冲突的选项置灰
+    function applyConstraints() {
+      const c = currentConfig;
+
+      // 1. 关闭定时 → Cron 表达式不可编辑
+      setDisabled("item_TIMING", String(c.AUTO_RUN) !== "true");
+
+      // 2. 反代 IP 只支持 IPv4 (脚本中反代优先于 IPv6)
+      const prOn = String(c.IP_PR_IP || "0") !== "0";
+      if (prOn && c.IP_ADDR !== "ipv4") setSeg("IP_ADDR", "ipv4", true);
+      setDisabled("item_IP_ADDR", prOn);
+      const v6On = !prOn && c.IP_ADDR === "ipv6";
+      if (v6On && String(c.IP_PR_IP || "0") !== "0") setSeg("IP_PR_IP", "0", true);
+      setDisabled("item_IP_PR_IP", v6On);
+
+      // 3. 反代 IP 模式下 cfst 不使用 -tll 参数
+      setDisabled("item_CFST_TLL", prOn);
+
+      // 4. TCPing 模式下 HTTPing 专属参数不可用
+      const httping = !!c.CFST_STM;
+      setDisabled("item_httping_code", !httping);
+      setDisabled("item_cfcolo", !httping);
+
+      // 5. DNS 服务商互斥
+      const provider = String(c.DNS_PROVIDER || "1");
+      setDisabled("card_cf", provider !== "1");
+      setDisabled("card_dnspod", provider !== "2");
+
+      // 6. 一域名多 IP 未开启 → 数量不可编辑 (Cloudflare 卡片禁用时由上层控制)
+      if (provider === "1") {
+        setDisabled("item_MULTI_IP_NUM", String(c.MULTI_IP) !== "true");
+      }
+    }
+
+    function setInput(field, value) {
+      const el = document.getElementById("cfg_" + field);
+      if (el) {
+        el.value = value;
+        currentConfig[field] = value;
+      }
+    }
+
+    function togglePwd(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.type = el.type === "password" ? "text" : "password";
+    }
+
+    function renderHostnameTags() {
+      const box = document.getElementById("hostnameTags");
+      const list = Array.isArray(currentConfig.hostname) ? currentConfig.hostname : [];
+      if (list.length === 0) {
+        box.innerHTML = `<span style="color:var(--text-secondary);font-size:12.5px;">暂未添加域名，请在下方输入框输入域名并点击“+ 添加域名”</span>`;
+        return;
+      }
+      box.innerHTML = list.map((h, idx) => `
+        <span class="tag-chip">
+          <span>${escapeHtml(h)}</span>
+          <button type="button" class="tag-remove" onclick="removeHostname(${idx})" title="移除域名">×</button>
+        </span>
+      `).join("");
+    }
+
+    function addHostname() {
+      const input = document.getElementById("newHostnameInput");
+      const raw = (input.value || "").trim();
+      if (!raw) return;
+      const parts = raw.split(/[\s,]+/).map(s => s.trim()).filter(Boolean);
+      if (!Array.isArray(currentConfig.hostname)) currentConfig.hostname = [];
+      for (const p of parts) {
+        if (!currentConfig.hostname.includes(p)) {
+          currentConfig.hostname.push(p);
+        }
+      }
+      input.value = "";
+      renderHostnameTags();
+    }
+
+    function removeHostname(idx) {
+      if (!Array.isArray(currentConfig.hostname)) return;
+      currentConfig.hostname.splice(idx, 1);
+      renderHostnameTags();
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, m => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[m]));
+    }
+
+    async function loadConfig() {
+      try {
+        const res = await fetch("/api/config");
+        const json = await res.json();
+        if (!json.ok) return;
+        currentConfig = json.data || {};
+        if (!Array.isArray(currentConfig.hostname)) currentConfig.hostname = [];
+
+        for (const f of INPUT_FIELDS) {
+          const el = document.getElementById("cfg_" + f);
+          if (el) el.value = currentConfig[f] !== undefined ? currentConfig[f] : "";
+        }
+
+        for (const f of SEG_FIELDS) {
+          let val = currentConfig[f] !== undefined ? String(currentConfig[f]) : "";
+          if (f === "IP_PR_IP" && val === "false") val = "0";
+          if (f === "IP_PR_IP" && val === "true") val = "1";
+          setSeg(f, val, true);
+        }
+
+        renderHostnameTags();
+        applyConstraints();
+      } catch (e) {
+        console.error("Failed to load config:", e);
+      }
+    }
+
+    async function saveConfig() {
+      const pendingHostInput = document.getElementById("newHostnameInput");
+      if (pendingHostInput && pendingHostInput.value.trim()) {
+        addHostname();
+      }
+      const payload = { ...currentConfig };
+      for (const f of INPUT_FIELDS) {
+        const el = document.getElementById("cfg_" + f);
+        if (el) payload[f] = el.value.trim();
+      }
+      try {
+        const res = await fetch("/api/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        if (json.ok) {
+          if (json.data) {
+            currentConfig = json.data;
+            for (const f of INPUT_FIELDS) {
+              const el = document.getElementById("cfg_" + f);
+              if (el && currentConfig[f] !== undefined) el.value = currentConfig[f];
+            }
+            for (const f of SEG_FIELDS) {
+              if (currentConfig[f] !== undefined) setSeg(f, String(currentConfig[f]), true);
+            }
+            renderHostnameTags();
+            applyConstraints();
+          }
+          showToast("✅ 配置已保存至 /opt/cloudfastddns/config.conf");
+          fetchLogsAndStatus();
+          return true;
+        } else {
+          showToast("❌ " + (json.message || "保存失败"));
+          return false;
+        }
+      } catch (e) {
+        showToast("❌ 网络请求异常");
+        return false;
+      }
+    }
+
+    async function startTask() {
+      const saved = await saveConfig();
+      if (!saved) return;
+      try {
+        const res = await fetch("/api/start", { method: "POST" });
+        const json = await res.json();
+        showToast(json.ok ? "🚀 " + json.message : "⚠️ " + json.message);
+        fetchLogsAndStatus();
+      } catch (e) {
+        showToast("❌ 启动任务请求失败");
+      }
+    }
+
+    async function stopTask() {
+      try {
+        const res = await fetch("/api/stop", { method: "POST" });
+        const json = await res.json();
+        showToast(json.ok ? "🛑 " + json.message : "⚠️ " + json.message);
+        fetchLogsAndStatus();
+      } catch (e) {
+        showToast("❌ 停止任务请求失败");
+      }
+    }
+
+    async function clearLogs() {
+      try {
+        await fetch("/api/logs/clear", { method: "POST" });
+        document.getElementById("logBox").innerHTML = `<span style="color:#6b7280;">日志已清空</span>`;
+      } catch (e) {}
+    }
+
+    function toggleAutoScroll() {
+      autoScroll = !autoScroll;
+      document.getElementById("btnAutoScroll").textContent = "自动滚动: " + (autoScroll ? "开" : "关");
+    }
+
+    function updateStatusUI(st) {
+      if (!st) return;
+      const dot = document.getElementById("statusDot");
+      const statusText = document.getElementById("statusText");
+      const phaseText = document.getElementById("phaseText");
+      const pidBadge = document.getElementById("pidBadge");
+      const btnStart = document.getElementById("btnStart");
+      const btnStop = document.getElementById("btnStop");
+
+      dot.className = "dot";
+      if (st.running) {
+        dot.classList.add("dot-running");
+        statusText.textContent = `运行中 (${st.duration || 0}s)`;
+        pidBadge.textContent = st.pid ? `PID: ${st.pid}` : "";
+        btnStart.disabled = true;
+        btnStop.disabled = false;
+      } else if (st.status === "stopped") {
+        dot.classList.add("dot-stopped");
+        statusText.textContent = "已手动停止";
+        pidBadge.textContent = "";
+        btnStart.disabled = false;
+        btnStop.disabled = true;
+      } else if (st.status === "error") {
+        dot.classList.add("dot-error");
+        statusText.textContent = "运行异常";
+        pidBadge.textContent = "";
+        btnStart.disabled = false;
+        btnStop.disabled = true;
+      } else {
+        dot.classList.add("dot-idle");
+        statusText.textContent = "空闲待命";
+        pidBadge.textContent = "";
+        btnStart.disabled = false;
+        btnStop.disabled = true;
+      }
+
+      phaseText.textContent = st.phase || "空闲待命";
+      document.getElementById("timingDisplay").textContent = st.timing || "未设置";
+      document.getElementById("autoRunBadge").textContent = st.auto_run ? "定时: 开启" : "定时: 关闭";
+      document.getElementById("lastRunText").textContent = st.start_time
+        ? `上次启动: ${st.start_time}`
+        : "上次启动: 暂无记录";
+
+      document.getElementById("proxyDisplay").textContent = st.proxy
+        ? `代理: ${st.proxy}`
+        : "代理: 直连 GitHub";
+
+      const envEl = document.getElementById("envStatusText");
+      if (st.cfst_ready) {
+        envEl.textContent = "cfst 已就绪";
+        envEl.style.color = "var(--success)";
+      } else {
+        envEl.textContent = "待初始化";
+        envEl.style.color = "var(--warning)";
+      }
+
+      if (wasRunning && !st.running) {
+        fetchResults();
+      }
+      wasRunning = !!st.running;
+    }
+
+    function formatLogLine(line) {
+      const esc = escapeHtml(line);
+      if (line.includes("成功") || line.includes("验证成功") || line.includes("初始化完成")) {
+        return `<div class="log-line log-ok">${esc}</div>`;
+      }
+      if (line.includes("错误") || line.includes("失败") || line.includes("未配置！！！")) {
+        return `<div class="log-line log-err">${esc}</div>`;
+      }
+      if (line.includes("[停止]") || line.includes("跳过")) {
+        return `<div class="log-line log-warn">${esc}</div>`;
+      }
+      if (line.includes(">>>") || line.includes("[测速进度]") || line.includes("测速完毕") || line.includes("正在更新")) {
+        return `<div class="log-line log-info">${esc}</div>`;
+      }
+      return `<div class="log-line">${esc}</div>`;
+    }
+
+    async function fetchLogsAndStatus() {
+      try {
+        const res = await fetch("/api/logs");
+        const json = await res.json();
+        if (!json.ok) return;
+        const { lines, status } = json.data;
+        updateStatusUI(status);
+
+        const logBox = document.getElementById("logBox");
+        const nextKey = !lines || lines.length === 0 ? "__EMPTY__" : lines.join("\n");
+        if (window._lastRenderedLogsKey !== nextKey) {
+          window._lastRenderedLogsKey = nextKey;
+          if (!lines || lines.length === 0) {
+            logBox.innerHTML = `<span style="color:#6b7280;">暂无运行日志，点击上方“▶ 开始运行”启动优选 IP 与 DDNS 更新...</span>`;
+          } else {
+            logBox.innerHTML = lines.map(formatLogLine).join("");
+            if (autoScroll) {
+              logBox.scrollTop = logBox.scrollHeight;
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    async function fetchResults() {
+      try {
+        const res = await fetch("/api/results");
+        const json = await res.json();
+        if (!json.ok) return;
+        const { updated_at, items } = json.data;
+        const wrap = document.getElementById("resultTableWrap");
+        const updatedEl = document.getElementById("resultUpdatedAt");
+        updatedEl.textContent = updated_at ? `更新于 ${updated_at}` : "";
+
+        if (!items || items.length === 0) {
+          wrap.innerHTML = `<div class="empty-state">暂无优选 IP 结果，请点击“▶ 开始运行”执行测速</div>`;
+          document.getElementById("bestIpText").textContent = "暂无数据";
+          document.getElementById("bestSpeedText").textContent = "点击“开始运行”获取优选结果";
+          document.getElementById("bestColoBadge").textContent = "";
+          return;
+        }
+
+        const best = items[0];
+        document.getElementById("bestIpText").textContent = best.ip;
+        document.getElementById("bestSpeedText").textContent = `速度: ${best.speed} MB/s | 延迟: ${best.latency} ms`;
+        document.getElementById("bestColoBadge").textContent = best.colo ? best.colo : "#1 最优";
+
+        const rowsHtml = items.map(item => `
+          <tr>
+            <td><span class="badge badge-rank">#${item.rank}</span></td>
+            <td style="font-family:monospace;font-weight:600;">
+              ${escapeHtml(item.ip)}
+              <button class="preset-btn" style="margin-left:6px;padding:1px 6px;" onclick="copyIp('${escapeHtml(item.ip)}')">复制</button>
+            </td>
+            <td>${escapeHtml(item.sent)} / ${escapeHtml(item.recv)}</td>
+            <td>${escapeHtml(item.loss)}</td>
+            <td>${escapeHtml(item.latency)} ms</td>
+            <td><span class="badge badge-speed">${escapeHtml(item.speed)} MB/s</span></td>
+            <td>${escapeHtml(item.colo || "-")}</td>
+          </tr>
+        `).join("");
+
+        wrap.innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>排名</th>
+                <th>优选 IP 地址</th>
+                <th>发包/收包</th>
+                <th>丢包率</th>
+                <th>平均延迟</th>
+                <th>下载速度</th>
+                <th>地区码</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        `;
+      } catch (e) {}
+    }
+
+    function fallbackCopyText(text) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      let ok = false;
+      try {
+        ok = document.execCommand("copy");
+      } catch (e) {
+        ok = false;
+      }
+      document.body.removeChild(ta);
+      return ok;
+    }
+
+    function copyIp(ip) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(ip)
+          .then(() => showToast("📋 已复制 IP: " + ip))
+          .catch(() => showToast(fallbackCopyText(ip) ? "📋 已复制 IP: " + ip : "IP: " + ip));
+      } else {
+        showToast(fallbackCopyText(ip) ? "📋 已复制 IP: " + ip : "IP: " + ip);
+      }
+    }
+
+    // Initialize
+    initTheme();
+    loadConfig();
+    fetchLogsAndStatus();
+    fetchResults();
+    setInterval(fetchLogsAndStatus, 1500);
+    setInterval(() => {
+      if (wasRunning) fetchResults();
+    }, 5000);
+  </script>
+</body>
+</html>
